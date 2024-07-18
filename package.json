@@ -1,0 +1,12 @@
+{
+  "name": "my-redux-saga",
+  "version": "1.0.0",
+  "description": "a samply redux saga demo",
+  "main": "index.js",
+  "scripts": {
+    "build": "npx webpack"
+  },
+  "keywords": [],
+  "author": "liuze",
+  "license": "ISC"
+}
