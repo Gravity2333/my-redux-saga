@@ -8,7 +8,8 @@ export function proc(
     dispatch: any;
     channel: Channel;
   },
-  interator: Iterator<any, any, any>
+  interator: Iterator<any, any, any>,
+  cb: any = ()=>{}
 ) {
   function handleNext(arg: any) {
     const result = interator.next(arg);
@@ -23,5 +24,5 @@ export function proc(
     effectRunner(env,result.value,handleNext)
   }
 
-  handleNext(void 0);
+  cb(handleNext(void 0));
 }
