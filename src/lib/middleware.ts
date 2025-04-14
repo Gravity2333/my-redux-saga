@@ -14,13 +14,18 @@ export default function sagaMiddlewareFactory() {
       dispatch: middlewareApi.dispatch,
       channel,
     });
-    return (next) => (action) => {
-      // 每次调用dispatch 拦截
-      // 先调用originDiapcth (next)
-      const result = next(action);
-      // put
-      channel.put(action);
-      return result;
+    return (next) => {
+      const foo = (action) => {
+   
+        // 每次调用dispatch 拦截
+        // 先调用originDiapcth (next)
+        const result = next(action);
+        // put
+        channel.put(action);
+        return result;
+      }
+      foo.qweqw=111
+      return foo
     };
   }
 

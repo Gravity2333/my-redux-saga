@@ -13,6 +13,12 @@ export function stdChannel() {
 
   function take(taker, matcher) {
     taker[MATCH] = matcher;
+    taker.cancel = ()=>{
+      const takerIndex = takers.findIndex(t=>t!==taker)
+      if(takerIndex>=0){
+        takers.splice(takerIndex,1)
+      }
+    }
     takers.push(taker);
   }
 
@@ -20,6 +26,7 @@ export function stdChannel() {
     takers.forEach((taker) => {
       if (taker[MATCH]?.(action.type)) {
         taker(action.payload);
+        taker.cancel()
       }
     });
   }
