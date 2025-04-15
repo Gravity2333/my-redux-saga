@@ -1,5 +1,6 @@
 import { Channel } from "./channel";
 import { effectRunnerMap } from "./effectRunnerMap";
+import { IO } from "./symbols";
 import { isIterator } from "./utils";
 
 /** 自动运行 */
@@ -25,9 +26,16 @@ export function proc(
         interator.throw!(err);
       });
     }
-    // 处理effects
-    const effectRunner = effectRunnerMap[result.value.type];
-    effectRunner(env, result.value, handleNext);
+
+    if (result.value[IO]) {
+      // effect类型
+      // 处理effects
+      const effectRunner = effectRunnerMap[result.value.type];
+      return effectRunner(env, result.value, handleNext);
+    }
+
+    /** 其他普通类型 对应 yield 111 yield xxx 普通类型等 */
+    handleNext(result.value);
   }
 
   cb(handleNext(void 0));
