@@ -2,6 +2,7 @@ import { Channel } from "./channel";
 import { CALL, FORK, PUT, TAKE } from "./effectTypes";
 import { proc } from "./proc";
 import { asap, immediate } from "./scheduler";
+import { isIterator } from "./utils";
 
 function runTakeEffect(
   env: {
@@ -29,10 +30,6 @@ function runPutEffect(
     const action = payload.action;
     cb(payload?.channel ? payload.channel.put(action) : env.dispatch(action));
   });
-}
-
-function isIterator(it: any) {
-  return typeof it.next === "function" && typeof it.throw === "function";
 }
 
 function runCallEffect(

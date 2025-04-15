@@ -14,7 +14,7 @@ export function stdChannel() {
   function take(taker, matcher) {
     taker[MATCH] = matcher;
     taker.cancel = ()=>{
-      const takerIndex = takers.findIndex(t=>t!==taker)
+      const takerIndex = takers.findIndex(t=>t===taker)
       if(takerIndex>=0){
         takers.splice(takerIndex,1)
       }
