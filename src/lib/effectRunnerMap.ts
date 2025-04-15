@@ -1,6 +1,7 @@
 import { Channel } from "./channel";
-import { CALL, PUT, TAKE } from "./effectTypes";
+import { CALL, FORK, PUT, TAKE } from "./effectTypes";
 import { proc } from "./proc";
+import { asap, immediate } from "./scheduler";
 
 function runTakeEffect(
   env: {
@@ -11,10 +12,8 @@ function runTakeEffect(
   effect: any,
   cb: any
 ) {
-  env.channel.take(
-    cb.bind(null, effect.payload),
-    (input) => input === effect.payload.type
-  );
+  const pattern = effect.payload;
+  env.channel.take(cb.bind(null, pattern), (input) => input === pattern);
 }
 
 function runPutEffect(
@@ -26,12 +25,14 @@ function runPutEffect(
   { payload }: any,
   cb
 ) {
-  const action = payload.action
-  cb(payload?.channel ? payload.channel.put(action): env.dispatch(action));
+  asap(() => {
+    const action = payload.action;
+    cb(payload?.channel ? payload.channel.put(action) : env.dispatch(action));
+  });
 }
 
 function isIterator(it: any) {
-  return typeof it.next === "function" && it.throw === "function";
+  return typeof it.next === "function" && typeof it.throw === "function";
 }
 
 function runCallEffect(
@@ -55,8 +56,29 @@ function runCallEffect(
   return cb(result);
 }
 
+function runForkEffect(
+  env: {
+    getState: any;
+    dispatch: any;
+    channel: Channel;
+  },
+  effect: any,
+  cb: any
+) {
+  return immediate(() => {
+    const { fn, args } = effect.payload;
+    const result = fn(...args);
+    if (isIterator(result)) {
+      // 传入的是迭代器
+      return cb(proc(env, result));
+    }
+    return cb(result);
+  });
+}
+
 export const effectRunnerMap = {
   [TAKE]: runTakeEffect,
   [PUT]: runPutEffect,
   [CALL]: runCallEffect,
+  [FORK]: runForkEffect,
 };
