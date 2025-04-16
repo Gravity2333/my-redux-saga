@@ -1,4 +1,4 @@
-import { fork, take } from "./io";
+import { cancel, fork, take } from "./io";
 import { RUNNING } from "./taskStatus";
 
 export function* takeEvery(pattern: string, fn: any, ...args: any[]) {
@@ -9,18 +9,18 @@ export function* takeEvery(pattern: string, fn: any, ...args: any[]) {
 }
 
 export function* takeLatest(pattern: string, fn: any, ...args: any[]) {
-  let lastTask: { status: number; cancel: any }|null = null;
+  let lastTask: { status: number; cancel: any } | null = null;
   while (true) {
     yield take(pattern);
     if (lastTask && lastTask.status === RUNNING) {
-      lastTask.cancel();
+      yield cancel(lastTask);
     }
     lastTask = yield fork(fn, ...args);
   }
 }
 
 export function* takeLeading(pattern: string, fn: any, ...args: any[]) {
-  let firstTask: { status: number; cancel: any }|null = null;
+  let firstTask: { status: number; cancel: any } | null = null;
   while (true) {
     yield take(pattern);
     if (firstTask && firstTask.status === RUNNING) {
@@ -47,4 +47,3 @@ export function* throttle(
     }
   }
 }
-

@@ -4,6 +4,11 @@ import { IO, TASK_CANCEL } from "./symbols";
 import { CANCELLED, DONE, RUNNING } from "./taskStatus";
 import { isIterator } from "./utils";
 
+export type Task = {
+  status: number;
+  cancel: () => void;
+};
+
 /** 自动运行 */
 export function proc(
   env: {
@@ -13,9 +18,9 @@ export function proc(
   },
   interator: Iterator<any, any, any>,
   cb: any = () => {}
-) {
+): Task {
   /** 初始化task */
-  const task = {
+  const task: Task = {
     status: RUNNING,
     cancel: () => {
       if (task.status === RUNNING) {
@@ -35,7 +40,7 @@ export function proc(
     }
     if (result.done) {
       /** 设置状态 */
-      task.status = DONE
+      task.status = DONE;
       return result.value;
     }
     if (isIterator(result.value)) {
@@ -60,5 +65,5 @@ export function proc(
   }
   cb(handleNext(void 0));
 
-  return task
+  return task;
 }

@@ -1,6 +1,6 @@
 import { Channel } from "./channel";
-import { CALL, FORK, PUT, TAKE } from "./effectTypes";
-import { proc } from "./proc";
+import { CALL, CANCEL, FORK, PUT, TAKE } from "./effectTypes";
+import { proc, Task } from "./proc";
 import { asap, immediate } from "./scheduler";
 import { isIterator } from "./utils";
 
@@ -73,9 +73,26 @@ function runForkEffect(
   });
 }
 
+function runCancelEffect(
+  env: {
+    getState: any;
+    dispatch: any;
+    channel: Channel;
+  },
+  effect: any,
+  cb: any
+){
+  const task = effect.payload.task as Task
+  if(task){
+    task.cancel()
+  }
+  cb()
+}
+
 export const effectRunnerMap = {
   [TAKE]: runTakeEffect,
   [PUT]: runPutEffect,
   [CALL]: runCallEffect,
   [FORK]: runForkEffect,
+  [CANCEL]: runCancelEffect,
 };
