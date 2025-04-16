@@ -1,5 +1,5 @@
 import { Channel } from "./channel";
-import { CALL, CANCEL, FORK, PUT, TAKE } from "./effectTypes";
+import { CALL, CANCEL, FORK, PUT, SELECT, TAKE } from "./effectTypes";
 import { proc, Task } from "./proc";
 import { asap, immediate } from "./scheduler";
 import { isIterator } from "./utils";
@@ -81,10 +81,26 @@ function runCancelEffect(
   },
   effect: any,
   cb: any
-){
-  const task = effect.payload.task as Task
-  if(task){
-    task.cancel()
+) {
+  const task = effect.payload.task as Task;
+  if (task) {
+    task.cancel();
+  }
+  cb();
+}
+
+function runSelectEffect(
+  env: {
+    getState: any;
+    dispatch: any;
+    channel: Channel;
+  },
+  effect: any,
+  cb: any
+) {
+  const selector = effect.payload.selector
+  if(selector){
+   cb(selector(env.getState())) 
   }
   cb()
 }
@@ -95,4 +111,5 @@ export const effectRunnerMap = {
   [CALL]: runCallEffect,
   [FORK]: runForkEffect,
   [CANCEL]: runCancelEffect,
+  [SELECT]: runSelectEffect,
 };

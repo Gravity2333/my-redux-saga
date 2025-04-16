@@ -10,7 +10,7 @@ export default function sagaMiddlewareFactory() {
   function sagaMiddleware(middlewareApi: { getState: any; dispatch: any }) {
     boundRunSaga = runSaga.bind(null, {
       // env
-      getState: middlewareApi.dispatch,
+      getState: middlewareApi.getState,
       dispatch: middlewareApi.dispatch,
       channel,
     });

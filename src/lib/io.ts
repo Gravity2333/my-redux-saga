@@ -1,4 +1,4 @@
-import { CALL, CANCEL, FORK, PUT, TAKE } from "./effectTypes";
+import { CALL, CANCEL, FORK, PUT, SELECT, TAKE } from "./effectTypes";
 import { Task } from "./proc";
 import { IO } from "./symbols";
 
@@ -45,4 +45,8 @@ export function fork(fn: any, ...args: any[]) {
 
 export function cancel(task: Task) {
   return makeEffect(CANCEL, { task });
+}
+
+export function select(selector: (state: any) => any) {
+  return makeEffect(SELECT, { selector });
 }
