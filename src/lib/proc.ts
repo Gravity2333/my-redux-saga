@@ -30,6 +30,9 @@ export function proc(
     },
   };
 
+  // 设置cancel
+  (cb as any).cancel = task.cancel;
+
   function handleNext(arg: any) {
     const result = interator.next(arg);
     /** 判断是否为取消逻辑 */
@@ -41,7 +44,8 @@ export function proc(
     if (result.done) {
       /** 设置状态 */
       task.status = DONE;
-      return result.value;
+      cb(result.value);
+      return;
     }
     if (isIterator(result.value)) {
       /** 迭代器情况 */
@@ -63,7 +67,8 @@ export function proc(
     /** 其他普通类型 对应 yield 111 yield xxx 普通类型等 */
     return handleNext(result.value);
   }
-  cb(handleNext(void 0));
+
+  handleNext(void 0);
 
   return task;
 }

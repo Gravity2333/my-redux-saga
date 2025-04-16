@@ -1,5 +1,15 @@
 import { Channel } from "./channel";
-import { CALL, CANCEL, FORK, PUT, SELECT, TAKE } from "./effectTypes";
+import {
+  ALL,
+  CALL,
+  CANCEL,
+  FORK,
+  PUT,
+  RACE,
+  SELECT,
+  TAKE,
+} from "./effectTypes";
+import { Effect } from "./io";
 import { proc, Task } from "./proc";
 import { asap, immediate } from "./scheduler";
 import { isIterator } from "./utils";
@@ -48,9 +58,10 @@ function runCallEffect(
   }
   if (isIterator(result)) {
     // 传入的是迭代器
-    return proc(env, result, cb);
+    proc(env, result, cb);
+    return;
   }
-  return cb(result);
+  cb(result);
 }
 
 function runForkEffect(
@@ -98,11 +109,68 @@ function runSelectEffect(
   effect: any,
   cb: any
 ) {
-  const selector = effect.payload.selector
-  if(selector){
-   cb(selector(env.getState())) 
+  const selector = effect.payload.selector;
+  if (selector) {
+    cb(selector(env.getState()));
   }
-  cb()
+  cb();
+}
+
+function runAllEffect(
+  env: {
+    getState: any;
+    dispatch: any;
+    channel: Channel;
+  },
+  effect: any,
+  cb: any
+) {
+  const effects = effect.payload.effects as Effect[];
+  let doneEffectCnt = 0;
+  let doneEffectResult = [];
+  function handleEffectDone(index, result) {
+    doneEffectResult[index] = result;
+    doneEffectCnt++;
+    if (doneEffectCnt === effects.length) {
+      cb(doneEffectResult);
+    }
+  }
+  effects.forEach((_effect, index) => {
+    const effectRunner = effectRunnerMap[_effect.type];
+    effectRunner(env, _effect, handleEffectDone.bind(null, index));
+  });
+}
+
+function runRaceEffect(
+  env: {
+    getState: any;
+    dispatch: any;
+    channel: Channel;
+  },
+  effect: any,
+  cb: any
+) {
+  const effects = effect.payload.effects as Effect[];
+  let isDone = false;
+  const taskList: Task[] = [];
+
+  effects.forEach((_effect, index) => {
+    const effectRunner = effectRunnerMap[_effect.type];
+    function handleEffectDone(index: number, result: any) {
+      if (isDone) return;
+      isDone = true;
+      taskList.forEach((task, i) => {
+        if (i !== index) {
+          (boundEffectHandler as any).cancel();
+        }
+      });
+      cb(result);
+    }
+
+    const boundEffectHandler = handleEffectDone.bind(this, index);
+
+    taskList[index] = effectRunner(env, _effect, boundEffectHandler);
+  });
 }
 
 export const effectRunnerMap = {
@@ -112,4 +180,6 @@ export const effectRunnerMap = {
   [FORK]: runForkEffect,
   [CANCEL]: runCancelEffect,
   [SELECT]: runSelectEffect,
+  [ALL]: runAllEffect,
+  [RACE]: runRaceEffect,
 };

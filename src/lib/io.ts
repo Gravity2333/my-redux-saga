@@ -1,9 +1,23 @@
-import { CALL, CANCEL, FORK, PUT, SELECT, TAKE } from "./effectTypes";
+import {
+  ALL,
+  CALL,
+  CANCEL,
+  FORK,
+  PUT,
+  RACE,
+  SELECT,
+  TAKE,
+} from "./effectTypes";
 import { Task } from "./proc";
 import { IO } from "./symbols";
 
+export type Effect = {
+  type: string;
+  payload: any;
+} & Record<string, any>;
+
 /** 创建effect 简易的封装  effect maker*/
-export function makeEffect(type: string, payload?: any) {
+export function makeEffect(type: string, payload?: any): Effect {
   return {
     [IO]: true,
     type,
@@ -49,4 +63,12 @@ export function cancel(task: Task) {
 
 export function select(selector: (state: any) => any) {
   return makeEffect(SELECT, { selector });
+}
+
+export function all(effects: Effect[]) {
+  return makeEffect(ALL, { effects });
+}
+
+export function race(effects: Effect[]) {
+  return makeEffect(RACE, { effects });
 }
