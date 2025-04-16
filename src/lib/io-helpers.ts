@@ -29,3 +29,22 @@ export function* takeLeading(pattern: string, fn: any, ...args: any[]) {
     firstTask = yield fork(fn, ...args);
   }
 }
+
+export function* throttle(
+  timeout: number,
+  pattern: string,
+  fn: any,
+  ...args: any[]
+) {
+  let timerObj: any = null;
+  while (true) {
+    yield take(pattern);
+    if (!timerObj) {
+      timerObj = setTimeout(() => {
+        timerObj = null;
+      }, timeout);
+      yield fork(fn, ...args);
+    }
+  }
+}
+
