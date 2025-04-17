@@ -1,5 +1,6 @@
 import { Channel } from "./channel";
 import { effectRunnerMap } from "./effectRunnerMap";
+import { resolvePromise } from "./resolvPromise";
 import { IO, TASK_CANCEL } from "./symbols";
 import { CANCELLED, DONE, RUNNING } from "./taskStatus";
 import { isIterator } from "./utils";
@@ -38,19 +39,24 @@ export function proc(
 
   return task;
 
-  function handleNext(arg: any) {
+  function handleNext(arg: any, isErr: boolean = false) {
+    /** 判断错误情况 */
+    if (isErr) {
+      debugger
+      //  像iterator内部抛出异常
+      interator.throw(arg);
+    }
     const result = interator.next(arg);
     /** 判断是否为取消逻辑 */
+
     if (arg === TASK_CANCEL) {
-      return typeof interator.return === "function"
+      typeof interator.return === "function"
         ? interator.return(TASK_CANCEL)
         : { done: true, value: TASK_CANCEL };
-    }
-    if (result.done) {
+    } else if (result.done) {
       /** 设置状态 */
       task.status = DONE;
       cont(result.value);
-      return;
     } else {
       digestEffect(result.value, handleNext);
     }
@@ -59,18 +65,17 @@ export function proc(
   function digestEffect(maybeEffect: any, cb: any) {
     if (isIterator(maybeEffect)) {
       /** 迭代器情况 */
-      return proc(env, maybeEffect, cb);
+      proc(env, maybeEffect, cb);
     } else if (maybeEffect instanceof Promise) {
-      return Promise.resolve(maybeEffect).then(cb, (err) => {
-        interator.throw!(err);
-      });
+      resolvePromise(maybeEffect, handleNext);
     } else if (maybeEffect[IO]) {
       // effect类型
       // 处理effects
       const effectRunner = effectRunnerMap[maybeEffect.type];
-      return effectRunner(env, maybeEffect, cb);
+      effectRunner(env, maybeEffect, cb);
+    } else {
+      /** 其他普通类型 对应 yield 111 yield xxx 普通类型等 */
+      cb(maybeEffect);
     }
-    /** 其他普通类型 对应 yield 111 yield xxx 普通类型等 */
-    return cb(maybeEffect);
   }
 }

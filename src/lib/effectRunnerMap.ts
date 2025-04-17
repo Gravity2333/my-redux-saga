@@ -11,6 +11,7 @@ import {
 } from "./effectTypes";
 import { Effect } from "./io";
 import { proc, Task } from "./proc";
+import { resolvePromise } from "./resolvPromise";
 import { asap, immediate } from "./scheduler";
 import { isIterator } from "./utils";
 
@@ -24,7 +25,7 @@ function runTakeEffect(
   cb: any
 ) {
   const pattern = effect.payload;
-  env.channel.take(cb.bind(null, pattern), (input) => input === pattern);
+  env.channel.take(cb, (input) => input === pattern);
 }
 
 function runPutEffect(
@@ -54,14 +55,13 @@ function runCallEffect(
   const { fn, args } = effect.payload;
   const result = fn(...args);
   if (result instanceof Promise) {
-    return result.then(cb);
-  }
-  if (isIterator(result)) {
+    resolvePromise(result, cb);
+  } else if (isIterator(result)) {
     // 传入的是迭代器
     proc(env, result, cb);
-    return;
+  } else {
+    cb(result);
   }
-  cb(result);
 }
 
 function runForkEffect(

@@ -24,7 +24,6 @@ export default function sagaMiddlewareFactory() {
         channel.put(action);
         return result;
       }
-      foo.qweqw=111
       return foo
     };
   }
