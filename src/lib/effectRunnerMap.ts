@@ -72,17 +72,25 @@ function runForkEffect(
   },
   effect: any,
   cb: any,
-  { task }: ExecutingContext
+  { task: parent }: ExecutingContext
 ) {
   return immediate(() => {
-    const { fn, args } = effect.payload;
+    const { fn, args, detached = false } = effect.payload;
+
     const result = fn(...args);
 
     const childTask = proc(env, result);
-    /** childTask加入到 parent forkQueue 中*/
-    task.forkQueue.addTask(childTask);
-    /** 调用cb */
-    cb(childTask);
+
+    /** 处理独立的情况 */
+    if (detached) {
+      /** 调用cb */
+      cb(childTask);
+    } else {
+      /** childTask加入到 parent forkQueue 中*/
+      parent.forkQueue.addTask(childTask);
+      /** 调用cb */
+      cb(childTask);
+    }
   });
 }
 

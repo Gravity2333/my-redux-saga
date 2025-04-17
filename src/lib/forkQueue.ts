@@ -23,6 +23,7 @@ export function forkQueue(mainTask: Task, cont: any): ForkQueue {
       task.cont = noop;
       // 判断是否所有任务都完成了 如果是则调用parent的cont
       if (childTasks.length === 0) {
+        completed = true
         // 所有任务完成 执行外层cont
         cont(res);
       }
@@ -43,6 +44,7 @@ export function forkQueue(mainTask: Task, cont: any): ForkQueue {
   return {
     addTask,
     cancelAll,
-    hasRunningChild: ()=>childTasks.length >0
-  };
+    hasRunningChild: ()=>childTasks.length >0,
+    childTasks
+  }as any;
 }

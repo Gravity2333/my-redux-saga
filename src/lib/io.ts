@@ -57,6 +57,22 @@ export function fork(fn: any, ...args: any[]) {
   });
 }
 
+/** 独立的fork 当前子任务不会被父任务取消 
+ * const task = fork(function*()...)
+ * yield detach(task)
+ */
+export function detach(forkEff: Effect, ...args: any[]) {
+  return makeEffect(FORK, {
+    ...forkEff.payload,
+    detached: true
+  });
+}
+
+/** 相当于 detach(fork()) 语法糖 */
+export function spawn(fn: any, ...args: any[]) {
+  return detach(fork(fn,...args))
+}
+
 export function cancel(task: Task) {
   return makeEffect(CANCEL, { task });
 }
