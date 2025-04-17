@@ -17,7 +17,8 @@ export function proc(
     channel: Channel;
   },
   interator: Iterator<any, any, any>,
-  cb: any = () => {}
+  // continuation
+  cont: any = () => {}
 ): Task {
   /** 初始化task */
   const task: Task = {
@@ -31,7 +32,11 @@ export function proc(
   };
 
   // 设置cancel
-  (cb as any).cancel = task.cancel;
+  (cont as any).cancel = task.cancel;
+
+  handleNext(void 0);
+
+  return task;
 
   function handleNext(arg: any) {
     const result = interator.next(arg);
@@ -44,31 +49,28 @@ export function proc(
     if (result.done) {
       /** 设置状态 */
       task.status = DONE;
-      cb(result.value);
+      cont(result.value);
       return;
+    } else {
+      digestEffect(result.value, handleNext);
     }
-    if (isIterator(result.value)) {
-      /** 迭代器情况 */
-      return proc(env, result.value, handleNext);
-    }
-    if (result.value instanceof Promise) {
-      return Promise.resolve(result.value).then(handleNext, (err) => {
-        interator.throw!(err);
-      });
-    }
-
-    if (result.value[IO]) {
-      // effect类型
-      // 处理effects
-      const effectRunner = effectRunnerMap[result.value.type];
-      return effectRunner(env, result.value, handleNext);
-    }
-
-    /** 其他普通类型 对应 yield 111 yield xxx 普通类型等 */
-    return handleNext(result.value);
   }
 
-  handleNext(void 0);
-
-  return task;
+  function digestEffect(maybeEffect: any, cb: any) {
+    if (isIterator(maybeEffect)) {
+      /** 迭代器情况 */
+      return proc(env, maybeEffect, cb);
+    } else if (maybeEffect instanceof Promise) {
+      return Promise.resolve(maybeEffect).then(cb, (err) => {
+        interator.throw!(err);
+      });
+    } else if (maybeEffect[IO]) {
+      // effect类型
+      // 处理effects
+      const effectRunner = effectRunnerMap[maybeEffect.type];
+      return effectRunner(env, maybeEffect, cb);
+    }
+    /** 其他普通类型 对应 yield 111 yield xxx 普通类型等 */
+    return cb(maybeEffect);
+  }
 }
