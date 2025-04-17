@@ -10,7 +10,7 @@ import {
   TAKE,
 } from "./effectTypes";
 import { Effect } from "./io";
-import { digestEffect, proc, Task } from "./proc";
+import { ExecutingContext, proc, Task } from "./proc";
 import { resolvePromise } from "./resolvPromise";
 import { asap, immediate } from "./scheduler";
 import { isIterator } from "./utils";
@@ -71,16 +71,18 @@ function runForkEffect(
     channel: Channel;
   },
   effect: any,
-  cb: any
+  cb: any,
+  { task }: ExecutingContext
 ) {
   return immediate(() => {
     const { fn, args } = effect.payload;
     const result = fn(...args);
-    if (isIterator(result)) {
-      // 传入的是迭代器
-      return cb(proc(env, result));
-    }
-    return cb(result);
+
+    const childTask = proc(env, result);
+    /** childTask加入到 parent forkQueue 中*/
+    task.forkQueue.addTask(childTask);
+    /** 调用cb */
+    cb(childTask);
   });
 }
 
@@ -123,7 +125,8 @@ function runAllEffect(
     channel: Channel;
   },
   effect: any,
-  cb: any
+  cb: any,
+  { digestEffect }
 ) {
   const effects = effect.payload.effects as Effect[];
   let doneEffectCnt = 0;

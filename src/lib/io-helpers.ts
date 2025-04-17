@@ -1,5 +1,6 @@
 import { CANCEL } from "./effectTypes";
 import { cancel, fork, take } from "./io";
+import { Task } from "./proc";
 import { RUNNING } from "./taskStatus";
 
 export function* takeEvery(pattern: string, fn: any, ...args: any[]) {
@@ -10,7 +11,7 @@ export function* takeEvery(pattern: string, fn: any, ...args: any[]) {
 }
 
 export function* takeLatest(pattern: string, fn: any, ...args: any[]) {
-  let lastTask: { status: number; cancel: any } | null = null;
+  let lastTask: Task | null = null;
   while (true) {
     yield take(pattern);
     if (lastTask && lastTask.status === RUNNING) {
