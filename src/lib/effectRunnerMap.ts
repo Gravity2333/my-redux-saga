@@ -10,7 +10,7 @@ import {
   TAKE,
 } from "./effectTypes";
 import { Effect } from "./io";
-import { proc, Task } from "./proc";
+import { digestEffect, proc, Task } from "./proc";
 import { resolvePromise } from "./resolvPromise";
 import { asap, immediate } from "./scheduler";
 import { isIterator } from "./utils";
@@ -136,8 +136,7 @@ function runAllEffect(
     }
   }
   effects.forEach((_effect, index) => {
-    const effectRunner = effectRunnerMap[_effect.type];
-    effectRunner(env, _effect, handleEffectDone.bind(null, index));
+    digestEffect(env, _effect, handleEffectDone.bind(null, index));
   });
 }
 

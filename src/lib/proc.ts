@@ -42,7 +42,6 @@ export function proc(
   function handleNext(arg: any, isErr: boolean = false) {
     /** 判断错误情况 */
     if (isErr) {
-      debugger
       //  像iterator内部抛出异常
       interator.throw(arg);
     }
@@ -58,24 +57,24 @@ export function proc(
       task.status = DONE;
       cont(result.value);
     } else {
-      digestEffect(result.value, handleNext);
+      digestEffect(env, result.value, handleNext);
     }
   }
+}
 
-  function digestEffect(maybeEffect: any, cb: any) {
-    if (isIterator(maybeEffect)) {
-      /** 迭代器情况 */
-      proc(env, maybeEffect, cb);
-    } else if (maybeEffect instanceof Promise) {
-      resolvePromise(maybeEffect, handleNext);
-    } else if (maybeEffect[IO]) {
-      // effect类型
-      // 处理effects
-      const effectRunner = effectRunnerMap[maybeEffect.type];
-      effectRunner(env, maybeEffect, cb);
-    } else {
-      /** 其他普通类型 对应 yield 111 yield xxx 普通类型等 */
-      cb(maybeEffect);
-    }
+export function digestEffect(env, maybeEffect: any, cb: any) {
+  if (isIterator(maybeEffect)) {
+    /** 迭代器情况 */
+    proc(env, maybeEffect, cb);
+  } else if (maybeEffect instanceof Promise) {
+    resolvePromise(maybeEffect, cb);
+  } else if (maybeEffect[IO]) {
+    // effect类型
+    // 处理effects
+    const effectRunner = effectRunnerMap[maybeEffect.type];
+    effectRunner(env, maybeEffect, cb);
+  } else {
+    /** 其他普通类型 对应 yield 111 yield xxx 普通类型等 */
+    cb(maybeEffect);
   }
 }

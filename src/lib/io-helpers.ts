@@ -1,3 +1,4 @@
+import { CANCEL } from "./effectTypes";
 import { cancel, fork, take } from "./io";
 import { RUNNING } from "./taskStatus";
 
@@ -46,4 +47,19 @@ export function* throttle(
       yield fork(fn, ...args);
     }
   }
+}
+
+export function delay(timeout) {
+  let timer;
+  const promise = new Promise((resolve) => {
+    timer = setTimeout(() => {
+      resolve(Promise.resolve());
+    }, timeout);
+  });
+
+  promise[CANCEL] = () => {
+    clearTimeout(timer);
+  };
+
+  return promise;
 }
