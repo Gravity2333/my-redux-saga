@@ -158,14 +158,14 @@ function runRaceEffect(
     channel: Channel;
   },
   effect: any,
-  cb: any
+  cb: any,
+  { digestEffect }
 ) {
   const effects = effect.payload.effects as Effect[];
   let isDone = false;
   const taskList: Task[] = [];
 
   effects.forEach((_effect, index) => {
-    const effectRunner = effectRunnerMap[_effect.type];
     function handleEffectDone(index: number, result: any) {
       if (isDone) return;
       isDone = true;
@@ -179,7 +179,7 @@ function runRaceEffect(
 
     const boundEffectHandler = handleEffectDone.bind(this, index);
 
-    taskList[index] = effectRunner(env, _effect, boundEffectHandler);
+    taskList[index] = digestEffect(env, _effect, boundEffectHandler);
   });
 }
 
