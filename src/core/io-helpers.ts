@@ -1,35 +1,41 @@
 import { CANCEL } from "./effectTypes";
-import { cancel, fork, take } from "./io";
+import { cancel, fork, spawn, take } from "./io";
 import { Task } from "./proc";
 import { RUNNING } from "./taskStatus";
 
 export function* takeEvery(pattern: string, fn: any, ...args: any[]) {
-  while (true) {
-    yield take(pattern);
-    yield fork(fn, ...args);
-  }
+  yield spawn(function* () {
+    while (true) {
+      yield take(pattern);
+      yield fork(fn, ...args);
+    }
+  });
 }
 
 export function* takeLatest(pattern: string, fn: any, ...args: any[]) {
   let lastTask: Task | null = null;
-  while (true) {
-    yield take(pattern);
-    if (lastTask && lastTask.status === RUNNING) {
-      yield cancel(lastTask);
+  yield spawn(function* () {
+    while (true) {
+      yield take(pattern);
+      if (lastTask && lastTask.status === RUNNING) {
+        yield cancel(lastTask);
+      }
+      lastTask = yield fork(fn, ...args);
     }
-    lastTask = yield fork(fn, ...args);
-  }
+  });
 }
 
 export function* takeLeading(pattern: string, fn: any, ...args: any[]) {
   let firstTask: { status: number; cancel: any } | null = null;
-  while (true) {
-    yield take(pattern);
-    if (firstTask && firstTask.status === RUNNING) {
-      continue;
+  yield spawn(function* () {
+    while (true) {
+      yield take(pattern);
+      if (firstTask && firstTask.status === RUNNING) {
+        continue;
+      }
+      firstTask = yield fork(fn, ...args);
     }
-    firstTask = yield fork(fn, ...args);
-  }
+  });
 }
 
 export function* throttle(
@@ -39,15 +45,17 @@ export function* throttle(
   ...args: any[]
 ) {
   let timerObj: any = null;
-  while (true) {
-    yield take(pattern);
-    if (!timerObj) {
-      timerObj = setTimeout(() => {
-        timerObj = null;
-      }, timeout);
-      yield fork(fn, ...args);
+  yield spawn(function* () {
+    while (true) {
+      yield take(pattern);
+      if (!timerObj) {
+        timerObj = setTimeout(() => {
+          timerObj = null;
+        }, timeout);
+        yield fork(fn, ...args);
+      }
     }
-  }
+  });
 }
 
 export function delay(timeout) {
