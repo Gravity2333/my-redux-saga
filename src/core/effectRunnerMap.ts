@@ -13,7 +13,7 @@ import { Effect } from "./io";
 import { ExecutingContext, proc, Task } from "./proc";
 import { resolvePromise } from "./resolvPromise";
 import { asap, immediate } from "./scheduler";
-import { isIterator } from "./utils";
+import { isIterator, noop } from "./utils";
 
 function runTakeEffect(
   env: {
@@ -158,31 +158,34 @@ function runRaceEffect(
     channel: Channel;
   },
   effect: any,
-  cb: any
+  cb: any,
+  { digestEffect }
 ) {
   const effects = effect.payload.effects as Effect[];
   let isDone = false;
-  const taskList: Task[] = [];
-
+  const callbacks = {}
   effects.forEach((_effect, index) => {
-    const effectRunner = effectRunnerMap[_effect.type];
-    function handleEffectDone(index: number, result: any) {
+    function handleEffectDone(result: any) {
       if (isDone) return;
       isDone = true;
-      taskList.forEach((task, i) => {
-        if (i !== index) {
-          (boundEffectHandler as any).cancel();
+      Object.keys(callbacks).forEach(i => {
+        if (+i !== index) {
+          callbacks[i]?.cancel()
         }
       });
       cb(result);
     }
-
-    const boundEffectHandler = handleEffectDone.bind(this, index);
-
-    taskList[index] = effectRunner(env, _effect, boundEffectHandler);
+    handleEffectDone.cancel = noop
+    callbacks[index] = handleEffectDone
   });
-}
+  effects.forEach((_effect, index) => {
+    if (isDone) {
+      return
+    }
+    digestEffect(env, _effect, callbacks[index]);
+  })
 
+}
 export const effectRunnerMap = {
   [TAKE]: runTakeEffect,
   [PUT]: runPutEffect,

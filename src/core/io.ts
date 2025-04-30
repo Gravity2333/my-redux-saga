@@ -81,10 +81,10 @@ export function select(selector: (state: any) => any) {
   return makeEffect(SELECT, { selector });
 }
 
-export function all(effects: Effect[]) {
+export function all(effects: any[]) {
   return makeEffect(ALL, { effects });
 }
 
-export function race(effects: Effect[]) {
+export function race(effects: any[]) {
   return makeEffect(RACE, { effects });
 }
