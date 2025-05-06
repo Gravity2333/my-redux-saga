@@ -10,7 +10,7 @@ export type Task = {
   status: number;
   cancel: () => void;
   cont: any;
-  forkQueue: ForkQueue|null;
+  forkQueue: ForkQueue;
 };
 
 export type ExecutingContext = {
@@ -33,14 +33,14 @@ export function proc(
   const task: Task = {
     status: RUNNING,
     cancel: () => {
-      if (task.forkQueue!.hasRunningChild() || task.status === RUNNING) {
+      if (task.status === RUNNING) {
         task.status = CANCELLED;
         handleNext(TASK_CANCEL);
-        task.forkQueue!.cancelAll();
+        task.forkQueue.cancelAll();
       }
     },
     cont,
-    forkQueue: null,
+    forkQueue: null as any,
   };
   task.forkQueue = forkQueue(task, cont);
 
@@ -69,7 +69,10 @@ export function proc(
     if (arg === TASK_CANCEL) {
       task.status = CANCELLED;
       /** 传播cancel */
-      (handleNext as any)?.cancel();
+      if ((handleNext as any)?.cancel) {
+        (handleNext as any)?.cancel();
+      }
+
       /** 向迭代器内部发出return指令 */
       typeof interator.return === "function"
         ? interator.return(TASK_CANCEL)

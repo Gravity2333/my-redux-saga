@@ -13,6 +13,7 @@ import { Effect } from "./io";
 import { ExecutingContext, proc, Task } from "./proc";
 import { resolvePromise } from "./resolvPromise";
 import { asap, immediate } from "./scheduler";
+import { CANCELLED, DONE, RUNNING } from "./taskStatus";
 import { isIterator, noop } from "./utils";
 
 function runTakeEffect(
@@ -76,12 +77,47 @@ function runForkEffect(
 ) {
   return immediate(() => {
     const { fn, args, detached = false } = effect.payload;
+    let result = fn(...args);
+    let forkStatus = RUNNING
+    cb.cancel = noop;
+    let childTask = result;
+    if (result instanceof Promise) {
+      childTask = {
+        cancel: cb.cancel,
+        status: forkStatus,
+      };
+      result
+        .then(() => {
+          childTask.status = DONE;
+        })
+        .catch(() => {
+          childTask.status = DONE;
+        });
 
-    const result = fn(...args);
+      const cancelPromise = result[CANCEL];
+      if (typeof cancelPromise === "function") {
+        // 给cb设置cancel 方便取消promise
+        childTask.cancel = cb.cancel = () => {
+          if (childTask.status != CANCELLED) {
+            childTask.status = CANCELLED;
+            cancelPromise();
+          }
+        };
+      }
+    } else if (!isIterator(result)) {
+      childTask = {
+        cancel: cb.cancel,
+        status: DONE,
+      };
+    } else {
+      const currcb = ()=>{
+        childTask.status = DONE
+      }
+      childTask = proc(env, result,currcb);
+      childTask.status = forkStatus
+      cb.cancel = childTask.cancel;
+    }
 
-    const childTask = proc(env, result);
-
-    /** 处理独立的情况 */
     if (detached) {
       /** 调用cb */
       cb(childTask);
@@ -138,7 +174,7 @@ function runAllEffect(
 ) {
   const effects = effect.payload.effects as Effect[];
   let doneEffectCnt = 0;
-  let doneEffectResult = [];
+  let doneEffectResult: any[] = [];
   function handleEffectDone(index, result) {
     doneEffectResult[index] = result;
     doneEffectCnt++;
@@ -163,28 +199,27 @@ function runRaceEffect(
 ) {
   const effects = effect.payload.effects as Effect[];
   let isDone = false;
-  const callbacks = {}
+  const callbacks = {};
   effects.forEach((_effect, index) => {
     function handleEffectDone(result: any) {
       if (isDone) return;
       isDone = true;
-      Object.keys(callbacks).forEach(i => {
+      Object.keys(callbacks).forEach((i) => {
         if (+i !== index) {
-          callbacks[i]?.cancel()
+          callbacks[i]?.cancel();
         }
       });
       cb(result);
     }
-    handleEffectDone.cancel = noop
-    callbacks[index] = handleEffectDone
+    handleEffectDone.cancel = noop;
+    callbacks[index] = handleEffectDone;
   });
   effects.forEach((_effect, index) => {
     if (isDone) {
-      return
+      return;
     }
     digestEffect(env, _effect, callbacks[index]);
-  })
-
+  });
 }
 export const effectRunnerMap = {
   [TAKE]: runTakeEffect,
