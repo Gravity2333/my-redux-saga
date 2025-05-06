@@ -98,7 +98,7 @@ function runForkEffect(
       if (typeof cancelPromise === "function") {
         // 给cb设置cancel 方便取消promise
         childTask.cancel = cb.cancel = () => {
-          if (childTask.status != CANCELLED) {
+          if (childTask.status != DONE&&childTask.status != CANCELLED) {
             childTask.status = CANCELLED;
             cancelPromise();
           }
