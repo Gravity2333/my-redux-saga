@@ -2,7 +2,7 @@ import { stdChannel } from "./channel";
 import { runSaga } from "./runSaga";
 
 /** 创建saga中间件 */
-export default function sagaMiddlewareFactory() {
+export default function createSagaMiddleware() {
   // 创建channel
   const channel = stdChannel();
   // 绑定runSage方法
@@ -16,20 +16,19 @@ export default function sagaMiddlewareFactory() {
     });
     return (next) => {
       const foo = (action) => {
-   
         // 每次调用dispatch 拦截
         // 先调用originDiapcth (next)
         const result = next(action);
         // put
         channel.put(action);
         return result;
-      }
-      return foo
+      };
+      return foo;
     };
   }
 
   sagaMiddleware.run = (saga: any, ...args: any[]) => {
-    return boundRunSaga(saga,...args)
+    return boundRunSaga(saga, ...args);
   };
 
   return sagaMiddleware;

@@ -42,7 +42,7 @@ type scheduledCallback = () => void;
 /** 队列 */
 const queue: scheduledCallback[] = [];
 
-/** 信号量 */
+/** 信号量 行栈深度计数器 */
 let semaphore = 0;
 
 /** suspend */
@@ -55,42 +55,46 @@ function release() {
   semaphore--;
 }
 
+/**
+ * 执行一个任务
+ * @param cb
+ */
+function exec(cb) {
+  try {
+    suspend();
+    cb();
+  } finally {
+    release();
+  }
+}
+
 /** 立刻执行方法 */
 export function immediate(fn: scheduledCallback) {
-    try{
-        // 刮起队列
-        suspend()
-        return fn()
-    }finally{
-        // 一定执行 release
-        flush() // flush队列 immediate任务执行完成了
-    }
+  try {
+    // 挂起队列
+    suspend();
+    return fn();
+  } finally {
+    // 一定执行 release
+    flush(); // flush队列 immediate任务执行完成了
+  }
 }
 
-
-function flush(){
-    release()
-    while(semaphore <=0 && queue.length > 0){
-        const cb = queue.shift()
-        if(cb === void 0) break
-        try{
-            suspend()
-            cb()
-        }finally{
-            release()
-        }
-    }
+function flush() {
+  release();
+  while (semaphore <= 0 && queue.length > 0) {
+    const cb = queue.shift();
+    if (cb === void 0) break;
+    exec(cb);
+  }
 }
 
+export function asap(cb: scheduledCallback) {
+  queue.push(cb);
 
-export  function asap(cb: scheduledCallback){
-    queue.push(cb)
-
-    // 检查 如果此时没有信号量 也可以直flush immediate是不用看信号量 直接运行的 ｜ asap是要检查信号量 才能运行的
-    if(semaphore === 0){
-        suspend()
-        flush()
-    }
+  // 检查 如果此时没有信号量 也可以直flush immediate是不用看信号量 直接运行的 ｜ asap是要检查信号量 才能运行的
+  if (semaphore === 0) {
+    suspend();
+    flush();
+  }
 }
-
-

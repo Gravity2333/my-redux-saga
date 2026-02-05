@@ -1,0 +1,36 @@
+{
+    "compilerOptions": {
+        "declaration": true,
+        "declarationDir": "./dist", // 指定声明文件输出目录
+        "outDir": "./dist", // 指定输出目录
+        "strict": true, // 启用严格模式
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "target": "esnext",
+        "module": "esnext",
+        "noUnusedLocals": false, // 禁用未使用变量的检查
+        "noUnusedParameters": false, // 禁用未使用参数的检查
+        "moduleResolution": "node",
+        "noImplicitAny": false,
+        "resolveJsonModule": true,
+        "importHelpers": true,
+        "sourceMap": true,
+        "baseUrl": "./",
+        "paths": {
+            "@/*": [
+                "src/*"
+            ],
+        },
+        "allowSyntheticDefaultImports": true,
+        "pretty": true,
+        "noEmitOnError": false,
+        "allowUnreachableCode": false,
+        "allowUnusedLabels": false
+    },
+    "include": [
+        "src/*",
+    ], // 确保包含正确的源文件
+    "exclude": [
+        "node_modules"
+    ] // 排除 node_modules
+}

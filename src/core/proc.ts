@@ -18,7 +18,7 @@ export type ExecutingContext = {
   digestEffect: (env: any, maybeEffect: any, cb: any) => void;
 };
 
-/** 自动运行 */
+/** 自动运行 驱动函数 */
 export function proc(
   env: {
     getState: any;
